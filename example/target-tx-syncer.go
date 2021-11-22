@@ -14,7 +14,7 @@ func main() {
 	startHeight := int64(811484)
 	arNode := "https://arweave.net"
 	concurrencyNumber := 100 // runtime concurrency number, default 10
-	s := arsyncer.New(startHeight, ownerFilterParams, arNode, concurrencyNumber)
+	s := arsyncer.New(startHeight, ownerFilterParams, arNode, concurrencyNumber, 15)
 
 	// run
 	s.Run()

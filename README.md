@@ -18,12 +18,13 @@ and all transactions are returned in on-chain order.
 
 ### New
 ```go
-syncer := New(startHeight, filterParams, arNode, conNum)
+syncer := New(startHeight, filterParams, arNode, conNum, stableBlockDistance)
 ```
 `startHeight` block height at the start of the sync   
 `filterParams` filter tx   
 `arNode` arweave node url   
-`conNum` runtime concurrency number, default 10   
+`conNum` runtime concurrency number, default is 10   
+`stableBlockDistance` stable block height distance, default is 15
 
 ### Run
 ```go

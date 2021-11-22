@@ -21,11 +21,15 @@ type Syncer struct {
 	arClient             *goar.Client
 	nextSubscribeTxBlock int64
 	conNum               int64 // concurrency of number
+	stableDistance       int64 // stable block distance
 }
 
-func New(startHeight int64, filterParams FilterParams, arNode string, conNum int) *Syncer {
+func New(startHeight int64, filterParams FilterParams, arNode string, conNum int, stableDistance int64) *Syncer {
 	if conNum <= 0 {
 		conNum = 10 // default concurrency of number is 10
+	}
+	if stableDistance <= 0 {
+		stableDistance = 15 // suggest stable block distance is 15
 	}
 	return &Syncer{
 		curHeight:            startHeight,
@@ -36,6 +40,7 @@ func New(startHeight int64, filterParams FilterParams, arNode string, conNum int
 		arClient:             goar.NewClient(arNode),
 		nextSubscribeTxBlock: startHeight,
 		conNum:               int64(conNum),
+		stableDistance:       stableDistance,
 	}
 }
 
@@ -68,7 +73,7 @@ func (s *Syncer) pollingBlock() {
 			time.Sleep(10 * time.Second)
 			continue
 		}
-		stableHeight := info.Height - 15 // stable height must low 15
+		stableHeight := info.Height - s.stableDistance
 		log.Debug("stable block", "height", stableHeight)
 
 		if s.curHeight >= stableHeight {
