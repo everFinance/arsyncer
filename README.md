@@ -3,7 +3,7 @@
 ---
 ### Install
 ```go
-go get github.com/everFinance/ar-syncer
+go get github.com/everFinance/arsyncer
 ```
 
 ### Introduction
