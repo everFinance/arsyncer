@@ -1,4 +1,4 @@
-module github.com/everFinance/ar-syncer
+module github.com/everFinance/arsyncer
 
 go 1.15
 

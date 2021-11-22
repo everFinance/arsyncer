@@ -1,4 +1,4 @@
-package common
+package arsyncer
 
 import (
 	"github.com/getsentry/sentry-go"

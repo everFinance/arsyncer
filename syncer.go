@@ -1,7 +1,6 @@
-package syncer
+package arsyncer
 
 import (
-	"github.com/everFinance/ar-syncer/common"
 	"github.com/everFinance/goar"
 	"github.com/everFinance/goar/types"
 	"github.com/everFinance/goar/utils"
@@ -11,20 +10,20 @@ import (
 	"time"
 )
 
-var log = common.NewLog("syncer")
+var log = NewLog("syncer")
 
 type Syncer struct {
 	curHeight int64
-	common.FilterParams
+	FilterParams
 	blockChan            chan *types.Block
-	txChan               chan common.SubscribeTx
-	SubscribeChan        chan common.SubscribeTx
+	txChan               chan SubscribeTx
+	SubscribeChan        chan SubscribeTx
 	arClient             *goar.Client
 	nextSubscribeTxBlock int64
 	conNum               int64 // concurrency of number
 }
 
-func New(startHeight int64, filterParams common.FilterParams, arNode string, conNum int) *Syncer {
+func New(startHeight int64, filterParams FilterParams, arNode string, conNum int) *Syncer {
 	if conNum <= 0 {
 		conNum = 10 // default concurrency of number is 10
 	}
@@ -32,8 +31,8 @@ func New(startHeight int64, filterParams common.FilterParams, arNode string, con
 		curHeight:            startHeight,
 		FilterParams:         filterParams,
 		blockChan:            make(chan *types.Block, 5*conNum),
-		txChan:               make(chan common.SubscribeTx, 1000),
-		SubscribeChan:        make(chan common.SubscribeTx, 1000),
+		txChan:               make(chan SubscribeTx, 1000),
+		SubscribeChan:        make(chan SubscribeTx, 1000),
 		arClient:             goar.NewClient(arNode),
 		nextSubscribeTxBlock: startHeight,
 		conNum:               int64(conNum),
@@ -53,7 +52,7 @@ func (s *Syncer) Close() (subscribeHeight int64) {
 	return s.nextSubscribeTxBlock - 1
 }
 
-func (s *Syncer) SubscribeTxCh() <-chan common.SubscribeTx {
+func (s *Syncer) SubscribeTxCh() <-chan SubscribeTx {
 	return s.SubscribeChan
 }
 
@@ -121,7 +120,7 @@ func (s *Syncer) getTxs(b types.Block) {
 	for {
 		if b.Height == atomic.LoadInt64(&s.nextSubscribeTxBlock) {
 			for _, tx := range txs {
-				sTx := common.SubscribeTx{
+				sTx := SubscribeTx{
 					Transaction:    tx,
 					BlockHeight:    b.Height,
 					BlockId:        b.IndepHash,
@@ -279,7 +278,7 @@ func getBlockByHeightRetry(arCli *goar.Client, height int64) (*types.Block, erro
 	}
 }
 
-func filter(params common.FilterParams, tx types.Transaction) bool {
+func filter(params FilterParams, tx types.Transaction) bool {
 	if tx.Owner == "" { // todo this tx is incorrect, need subscribe to coder debug
 		return false
 	}

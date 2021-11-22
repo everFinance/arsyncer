@@ -43,8 +43,8 @@ for {
 
 
 ### Example
-1. Get all transactions example: `./example/all-tx-syncer.go`
-2. Get the transactions for the specified sender: `./example/from-tx-syncer.go`
-3. Get the transactions for the specified target: `./example/target-tx-syncer.go`
-4. Get all smart contract transactions: `./example/swc-syncer.go`
+1. Get all transactions example: [./example/all-tx-syncer.go](https://github.com/everFinance/ar-syncer/blob/v1.0.0/example/all-tx-syncer.go)
+2. Get the transactions for the specified sender: [./example/from-tx-syncer.go](https://github.com/everFinance/ar-syncer/blob/v1.0.0/example/from-tx-syncer.go)
+3. Get the transactions for the specified target: [./example/target-tx-syncer.go](https://github.com/everFinance/ar-syncer/blob/v1.0.0/example/target-tx-syncer.go)
+4. Get all smart contract transactions: [./example/swc-syncer.go](https://github.com/everFinance/ar-syncer/blob/v1.0.0/example/swc-syncer.go)
 

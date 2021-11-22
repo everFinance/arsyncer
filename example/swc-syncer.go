@@ -2,14 +2,13 @@ package main
 
 import (
 	"fmt"
-	syncer "github.com/everFinance/ar-syncer"
-	"github.com/everFinance/ar-syncer/common"
+	"github.com/everFinance/arsyncer"
 	"github.com/everFinance/goar/types"
 )
 
 // only sync smart contract txs
 func main() {
-	swcFilterParams := common.FilterParams{
+	swcFilterParams := arsyncer.FilterParams{
 		Tags: []types.Tag{
 			{Name: "App-Name", Value: "SmartWeaveAction"}, // smart contract tag
 		},
@@ -17,7 +16,7 @@ func main() {
 	startHeight := int64(472810)
 	arNode := "https://arweave.net"
 	concurrencyNumber := 50 // runtime concurrency number, default 10
-	s := syncer.New(startHeight, swcFilterParams, arNode, concurrencyNumber)
+	s := arsyncer.New(startHeight, swcFilterParams, arNode, concurrencyNumber)
 
 	// run
 	s.Run()
