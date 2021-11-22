@@ -10,7 +10,11 @@ go get github.com/everFinance/ar-syncer
 ar-syncer is the high performance arweave network transaction synchronisation component.
 
 ### Principle
-Based on goar's [getBlockFromPeers](https://github.com/everFinance/goar/blob/main/client_broadcast.go#L55) and [getTxFromPeers](https://github.com/everFinance/goar/blob/main/client_broadcast.go#L75) methods, it is possible to achieve 100% pull to each block,then parse the tx_list in the block, and pull 100% of each tx(not return tx_data). And all transactions are returned in on-chain order. 
+Based on goar's [getBlockFromPeers](https://github.com/everFinance/goar/blob/main/client_broadcast.go#L55) and [getTxFromPeers](https://github.com/everFinance/goar/blob/main/client_broadcast.go#L75) methods.    
+it is possible to achieve 100% pull to each block.   
+then parse the tx_list in the block.   
+and pull 100% of each tx(not return tx_data).   
+and all transactions are returned in on-chain order.    
 
 ### New
 ```go
