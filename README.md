@@ -1,4 +1,4 @@
-# ar-syncer
+# arsyncer
 
 ---
 ### Install
@@ -7,7 +7,7 @@ go get github.com/everFinance/ar-syncer
 ```
 
 ### Introduction
-ar-syncer is the high performance arweave network transaction synchronisation component.
+arsyncer is the high performance arweave network transaction synchronisation component.
 
 ### Principle
 Based on goar's [getBlockFromPeers](https://github.com/everFinance/goar/blob/main/client_broadcast.go#L55) and [getTxFromPeers](https://github.com/everFinance/goar/blob/main/client_broadcast.go#L75) methods.    
