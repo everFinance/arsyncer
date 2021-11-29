@@ -16,8 +16,8 @@ type Syncer struct {
 	curHeight int64
 	FilterParams
 	blockChan            chan *types.Block
-	txChan               chan SubscribeTx
-	SubscribeChan        chan SubscribeTx
+	blockTxsChan         chan []SubscribeTx
+	SubscribeChan        chan []SubscribeTx
 	arClient             *goar.Client
 	nextSubscribeTxBlock int64
 	conNum               int64 // concurrency of number
@@ -35,8 +35,8 @@ func New(startHeight int64, filterParams FilterParams, arNode string, conNum int
 		curHeight:            startHeight,
 		FilterParams:         filterParams,
 		blockChan:            make(chan *types.Block, 5*conNum),
-		txChan:               make(chan SubscribeTx, 1000),
-		SubscribeChan:        make(chan SubscribeTx, 1000),
+		blockTxsChan:         make(chan []SubscribeTx, conNum),
+		SubscribeChan:        make(chan []SubscribeTx, conNum),
 		arClient:             goar.NewClient(arNode),
 		nextSubscribeTxBlock: startHeight,
 		conNum:               int64(conNum),
@@ -52,12 +52,12 @@ func (s *Syncer) Run() {
 
 func (s *Syncer) Close() (subscribeHeight int64) {
 	close(s.blockChan)
-	close(s.txChan)
+	close(s.blockTxsChan)
 	close(s.SubscribeChan)
 	return s.nextSubscribeTxBlock - 1
 }
 
-func (s *Syncer) SubscribeTxCh() <-chan SubscribeTx {
+func (s *Syncer) SubscribeTxCh() <-chan []SubscribeTx {
 	return s.SubscribeChan
 }
 
@@ -124,6 +124,7 @@ func (s *Syncer) getTxs(b types.Block) {
 	// subscribe txs
 	for {
 		if b.Height == atomic.LoadInt64(&s.nextSubscribeTxBlock) {
+			txsChan := make([]SubscribeTx, 0, len(txs))
 			for _, tx := range txs {
 				sTx := SubscribeTx{
 					Transaction:    tx,
@@ -131,7 +132,10 @@ func (s *Syncer) getTxs(b types.Block) {
 					BlockId:        b.IndepHash,
 					BlockTimestamp: b.Timestamp,
 				}
-				s.txChan <- sTx
+				txsChan = append(txsChan, sTx)
+			}
+			if len(txsChan) > 0 {
+				s.blockTxsChan <- txsChan
 			}
 			log.Info("polling one block txs success", "height", b.Height, "txNum", len(txs))
 			atomic.AddInt64(&s.nextSubscribeTxBlock, 1)
@@ -144,11 +148,18 @@ func (s *Syncer) getTxs(b types.Block) {
 func (s *Syncer) filterTx() {
 	for {
 		select {
-		case tx := <-s.txChan:
-			if filter(s.FilterParams, tx.Transaction) {
-				continue
+		case txs := <-s.blockTxsChan:
+			filterTxs := make([]SubscribeTx, 0, len(txs))
+			for _, tx := range txs {
+				if filter(s.FilterParams, tx.Transaction) {
+					continue
+				}
+				filterTxs = append(filterTxs, tx)
 			}
-			s.SubscribeChan <- tx
+
+			if len(filterTxs) > 0 {
+				s.SubscribeChan <- filterTxs
+			}
 		}
 	}
 }
