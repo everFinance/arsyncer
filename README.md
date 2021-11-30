@@ -49,3 +49,6 @@ for {
 3. Get the transactions for the specified target: [./example/target-tx-syncer.go](https://github.com/everFinance/ar-syncer/blob/v1.0.0/example/target-tx-syncer.go)
 4. Get all smart contract transactions: [./example/swc-syncer.go](https://github.com/everFinance/ar-syncer/blob/v1.0.0/example/swc-syncer.go)
 
+### Related
+How to implement a high-performance arweave txs synchroniser?   
+https://medium.com/everfinance/arsyncer-arweave-transaction-synchroniser-3ebcf0e741ec
