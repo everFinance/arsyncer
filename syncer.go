@@ -77,8 +77,8 @@ func (s *Syncer) pollingBlock() {
 		log.Debug("stable block", "height", stableHeight)
 
 		if s.curHeight >= stableHeight {
-			log.Debug("curHeight more than on chain stableHeight", "curHeight", s.curHeight, "stableHeight", stableHeight)
-			time.Sleep(5 * time.Minute)
+			log.Debug("synced curHeight must less than on chain stableHeight; please wait 2 minute", "curHeight", s.curHeight, "stableHeight", stableHeight)
+			time.Sleep(2 * time.Minute)
 			continue
 		}
 
