@@ -319,19 +319,16 @@ func filter(params FilterParams, tx types.Transaction) bool {
 
 	if len(params.Tags) > 0 {
 		// filter tags
+		// Notice: exist same name tags
 		filterTags := utils.TagsEncode(params.Tags)
 
-		txTagsMap := make(map[string]string)
+		txTagsMap := make(map[string]struct{}) // key: name+value; value: {}
 		for _, tg := range tx.Tags {
-			txTagsMap[tg.Name] = tg.Value
+			txTagsMap[tg.Name+tg.Value] = struct{}{}
 		}
 
 		for _, ftg := range filterTags {
-			val, ok := txTagsMap[ftg.Name]
-			if !ok {
-				return true
-			}
-			if val != ftg.Value {
+			if _, ok := txTagsMap[ftg.Name+ftg.Value]; !ok {
 				return true
 			}
 		}
