@@ -42,6 +42,7 @@ func New(startHeight int64, filterParams FilterParams, arNode string, conNum int
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println("Init arweave block indep hash_list finished...")
 
 	return &Syncer{
 		curHeight:            startHeight,
