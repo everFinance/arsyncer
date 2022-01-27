@@ -1,9 +1,11 @@
 package arsyncer
 
 import (
+	"fmt"
 	"github.com/everFinance/goar"
 	"github.com/everFinance/goar/types"
 	"github.com/everFinance/goar/utils"
+	"github.com/go-co-op/gocron"
 	"github.com/panjf2000/ants/v2"
 	"sync"
 	"sync/atomic"
@@ -22,6 +24,8 @@ type Syncer struct {
 	nextSubscribeTxBlock int64
 	conNum               int64 // concurrency of number
 	stableDistance       int64 // stable block distance
+	blockIdxs            *BlockIdxs
+	scheduler            *gocron.Scheduler
 }
 
 func New(startHeight int64, filterParams FilterParams, arNode string, conNum int, stableDistance int64) *Syncer {
@@ -31,20 +35,31 @@ func New(startHeight int64, filterParams FilterParams, arNode string, conNum int
 	if stableDistance <= 0 {
 		stableDistance = 15 // suggest stable block distance is 15
 	}
+	arCli := goar.NewClient(arNode)
+
+	fmt.Println("Init arweave block indep hash_list, need to speed about 2 minutes...")
+	idxs, err := GetBlockIdxs(startHeight, arCli)
+	if err != nil {
+		panic(err)
+	}
+
 	return &Syncer{
 		curHeight:            startHeight,
 		FilterParams:         filterParams,
 		blockChan:            make(chan *types.Block, 5*conNum),
 		blockTxsChan:         make(chan []SubscribeTx, conNum),
 		SubscribeChan:        make(chan []SubscribeTx, conNum),
-		arClient:             goar.NewClient(arNode),
+		arClient:             arCli,
 		nextSubscribeTxBlock: startHeight,
 		conNum:               int64(conNum),
 		stableDistance:       stableDistance,
+		blockIdxs:            idxs,
+		scheduler:            gocron.NewScheduler(time.UTC),
 	}
 }
 
 func (s *Syncer) Run() {
+	go s.runJobs()
 	go s.pollingBlock()
 	go s.pollingTx()
 	go s.filterTx()
@@ -88,7 +103,7 @@ func (s *Syncer) pollingBlock() {
 			if end > stableHeight {
 				end = stableHeight
 			}
-			blocks := mustGetBlocks(start, end, s.arClient, int(s.conNum))
+			blocks := mustGetBlocks(start, end, s.arClient, s.blockIdxs, int(s.conNum))
 			log.Info("get blocks success", "start", start, "end", end)
 
 			s.curHeight = end + 1
@@ -209,7 +224,7 @@ func mustGetTxs(blockHeight int64, blockTxs []string, arClient *goar.Client, con
 	return
 }
 
-func mustGetBlocks(start, end int64, arClient *goar.Client, conNum int) (blocks []*types.Block) {
+func mustGetBlocks(start, end int64, arClient *goar.Client, blockIdxs *BlockIdxs, conNum int) (blocks []*types.Block) {
 	if start > end {
 		return
 	}
@@ -222,7 +237,7 @@ func mustGetBlocks(start, end int64, arClient *goar.Client, conNum int) (blocks 
 
 	p, _ := ants.NewPoolWithFunc(conNum, func(i interface{}) {
 		height := i.(int64)
-		b, err := getBlockByHeightRetry(arClient, height)
+		b, err := getBlockByHeightRetry(arClient, height, blockIdxs)
 		if err != nil {
 			log.Error("get block by height error", "height", height, "err", err)
 			panic(err)
@@ -275,17 +290,23 @@ func getTxByIdRetry(blockHeight int64, arCli *goar.Client, txId string) (types.T
 	}
 }
 
-func getBlockByHeightRetry(arCli *goar.Client, height int64) (*types.Block, error) {
+func getBlockByHeightRetry(arCli *goar.Client, height int64, blockIdxs *BlockIdxs) (*types.Block, error) {
 	count := 0
 	for {
 		b, err := arCli.GetBlockByHeight(height)
+		if err != nil {
+			b, err = arCli.GetBlockFromPeers(height)
+		}
+
+		if err == nil {
+			// verify block
+			err = blockIdxs.VerifyBlock(*b)
+		}
+
 		if err == nil {
 			return b, nil
 		}
-		b, err = arCli.GetBlockFromPeers(height)
-		if err == nil {
-			return b, nil
-		}
+
 		if count == 5 {
 			return nil, err
 		}
