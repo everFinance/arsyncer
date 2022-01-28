@@ -1,7 +1,7 @@
 package arsyncer
 
 func (s *Syncer) runJobs() {
-	s.scheduler.Every(30).Seconds().SingletonMode().Do(s.updateBlockHashList)
+	s.scheduler.Every(5).Seconds().SingletonMode().Do(s.updateBlockHashList)
 
 	s.scheduler.StartAsync()
 }
@@ -17,4 +17,5 @@ func (s *Syncer) updateBlockHashList() {
 		return
 	}
 	s.blockIdxs = idxs
+	log.Debug("update block hash_list sucess", "startHeight", idxs.StartHeight, "endHeight", idxs.EndHeight)
 }
