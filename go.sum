@@ -25,6 +25,8 @@ github.com/everFinance/goar v1.3.9-0.20220127031831-9dc1ec0017d8 h1:Q1Ro6ng23M96
 github.com/everFinance/goar v1.3.9-0.20220127031831-9dc1ec0017d8/go.mod h1:x19A2ttl2SbZA0Q9nLBYerKFQiyVgj8doSAhDd505J4=
 github.com/everFinance/goar v1.3.9-0.20220127104616-f431ba4f4d25 h1:aoXHWojNcDU2gjsx4SKrhO2RDIEcm0GP4fqgE3bDtAg=
 github.com/everFinance/goar v1.3.9-0.20220127104616-f431ba4f4d25/go.mod h1:x19A2ttl2SbZA0Q9nLBYerKFQiyVgj8doSAhDd505J4=
+github.com/everFinance/goar v1.3.9-0.20220208081008-623661b97428 h1:MeSYPe26aD502W6M1s9oYYgY66g6NqeIQ3Ti6mpQ32k=
+github.com/everFinance/goar v1.3.9-0.20220208081008-623661b97428/go.mod h1:x19A2ttl2SbZA0Q9nLBYerKFQiyVgj8doSAhDd505J4=
 github.com/everFinance/gojwk v1.0.0 h1:le/oI2NgXlrqg3MHU6ka+V30EWcD7TD6+Ilh+go7924=
 github.com/everFinance/gojwk v1.0.0/go.mod h1:icXSXsIdpAczlpAtSljQlmABkMTRZENr73KHmo0GOGc=
 github.com/everFinance/ttcrsa v1.1.3 h1:RJl9UizbevHZUiWPHVKz1aM6yA8cmkZWaCbOGTD/L0I=
