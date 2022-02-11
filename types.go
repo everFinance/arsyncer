@@ -1,6 +1,8 @@
 package arsyncer
 
-import "github.com/everFinance/goar/types"
+import (
+	"github.com/everFinance/goar/types"
+)
 
 type SubscribeTx struct {
 	types.Transaction
