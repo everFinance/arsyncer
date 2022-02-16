@@ -249,7 +249,9 @@ func mustGetBlocks(start, end int64, arClient *goar.Client, blockIdxs *BlockIdxs
 		lock.Unlock()
 
 		wg.Done()
-	})
+	}, ants.WithPanicHandler(func(err interface{}) {
+		panic(err)
+	}))
 
 	defer p.Release()
 
