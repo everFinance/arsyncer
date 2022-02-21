@@ -1,11 +1,13 @@
 package arsyncer
 
 import (
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"github.com/everFinance/goar"
 	"github.com/everFinance/goar/types"
 	"github.com/everFinance/goar/utils"
+	"strings"
 )
 
 type BlockIdxs struct {
@@ -15,16 +17,24 @@ type BlockIdxs struct {
 }
 
 func GetBlockIdxs(startHeight int64, arCli *goar.Client) (*BlockIdxs, error) {
-	list, err := arCli.GetBlockHashList()
+	info, err := arCli.GetInfo()
+	if err != nil {
+		log.Error("arCli.GetInfo()", "err", err)
+		return nil, err
+	}
+	endHeight := info.Height
+
+	// get block hash_list from trust node
+	spiltList, err := GetBlockHashList(arCli, startHeight, endHeight)
+	if err != nil {
+		log.Error("GetBlockHashList(arCli,startHeight,endHeight)", "err", err)
+		// get block hash_list from no-trust node
+		spiltList, err = GetBlockHashListFromPeers(arCli, startHeight, endHeight, 5)
+	}
+
 	if err != nil {
 		return nil, err
 	}
-	endHeight := int64(len(list) - 1)
-	if startHeight > endHeight {
-		return nil, fmt.Errorf("startHeight:%d must less than endHeight:%d", startHeight, endHeight)
-	}
-
-	spiltList := list[:endHeight-startHeight+1]
 
 	hashMap := make(map[string]struct{})
 	for _, h := range spiltList {
@@ -57,4 +67,71 @@ func (l *BlockIdxs) VerifyBlock(b types.Block) error {
 		return fmt.Errorf("generateIndepHash not equal; b.IndepHash: %s", b.IndepHash)
 	}
 	return nil
+}
+
+func GetBlockHashList(arCli *goar.Client, startHeight, endHeight int64) ([]string, error) {
+	list, err := arCli.GetBlockHashList()
+	if err != nil {
+		return nil, err
+	}
+	curHeight := int64(len(list) - 1)
+	if curHeight < endHeight {
+		return nil, fmt.Errorf("curHeight must >= endHeight; curHeight:%d,endHeight:%d", curHeight, endHeight)
+	}
+	spiltList := list[curHeight-endHeight : endHeight-startHeight+1]
+	return spiltList, nil
+}
+
+func GetBlockHashListFromPeers(c *goar.Client, startHeight, endHeight int64, checkNum int, peers ...string) ([]string, error) {
+	var err error
+	if len(peers) == 0 {
+		peers, err = c.GetPeers()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	checkSum := ""
+	successCount := 0
+	failedCount := 0
+	pNode := goar.NewTempConn()
+	for _, peer := range peers {
+		pNode.SetTempConnUrl("http://" + peer)
+		hashList, err := pNode.GetBlockHashList()
+		if err != nil {
+			log.Error("pNode.GetBlockHashList()", "err", err)
+			continue
+		}
+		curHeight := int64(len(hashList) - 1)
+		if curHeight < endHeight {
+			continue
+		}
+
+		spiltList := hashList[curHeight-endHeight : curHeight-startHeight+1]
+		sum := strArrCheckSum(spiltList)
+		if checkSum == "" {
+			checkSum = sum
+		}
+
+		if checkSum == sum {
+			fmt.Printf("success get block hash_list; peer: %s\n", peer)
+			successCount++
+		} else {
+			fmt.Printf("failed get block hash_list, checksum failed; peer:%s\n", peer)
+			failedCount++
+		}
+
+		if successCount >= checkNum {
+			return spiltList, nil
+		}
+		if failedCount >= checkNum/2 {
+			return nil, errors.New("get hash_list from peers failed")
+		}
+	}
+	return nil, errors.New("get hash_list from peers failed")
+}
+
+func strArrCheckSum(ss []string) string {
+	hash := sha256.Sum256([]byte(strings.Join(ss, "")))
+	return string(hash[:])
 }
