@@ -26,6 +26,7 @@ type Syncer struct {
 	stableDistance       int64 // stable block distance
 	blockIdxs            *BlockIdxs
 	scheduler            *gocron.Scheduler
+	peers                []string
 }
 
 func New(startHeight int64, filterParams FilterParams, arNode string, conNum int, stableDistance int64) *Syncer {
@@ -44,6 +45,11 @@ func New(startHeight int64, filterParams FilterParams, arNode string, conNum int
 	}
 	fmt.Println("Init arweave block indep hash_list finished...")
 
+	peers, err := arCli.GetPeers()
+	if err != nil {
+		panic(err)
+	}
+
 	return &Syncer{
 		curHeight:            startHeight,
 		FilterParams:         filterParams,
@@ -56,6 +62,7 @@ func New(startHeight int64, filterParams FilterParams, arNode string, conNum int
 		stableDistance:       stableDistance,
 		blockIdxs:            idxs,
 		scheduler:            gocron.NewScheduler(time.UTC),
+		peers:                peers,
 	}
 }
 
@@ -104,7 +111,7 @@ func (s *Syncer) pollingBlock() {
 			if end > stableHeight {
 				end = stableHeight
 			}
-			blocks := mustGetBlocks(start, end, s.arClient, s.blockIdxs, int(s.conNum))
+			blocks := mustGetBlocks(start, end, s.arClient, s.blockIdxs, int(s.conNum), s.peers)
 			log.Info("get blocks success", "start", start, "end", end)
 
 			s.curHeight = end + 1
@@ -135,7 +142,7 @@ func (s *Syncer) pollingTx() {
 }
 
 func (s *Syncer) getTxs(b types.Block) {
-	txs := mustGetTxs(b.Height, b.Txs, s.arClient, int(s.conNum))
+	txs := mustGetTxs(b.Height, b.Txs, s.arClient, int(s.conNum), s.peers)
 
 	// subscribe txs
 	for {
@@ -180,7 +187,7 @@ func (s *Syncer) filterTx() {
 	}
 }
 
-func mustGetTxs(blockHeight int64, blockTxs []string, arClient *goar.Client, conNum int) (txs []types.Transaction) {
+func mustGetTxs(blockHeight int64, blockTxs []string, arClient *goar.Client, conNum int, peers []string) (txs []types.Transaction) {
 	if len(blockTxs) == 0 {
 		return
 	}
@@ -199,7 +206,7 @@ func mustGetTxs(blockHeight int64, blockTxs []string, arClient *goar.Client, con
 
 	p, _ := ants.NewPoolWithFunc(conNum, func(i interface{}) {
 		txId := i.(string)
-		tx, err := getTxByIdRetry(blockHeight, arClient, txId)
+		tx, err := getTxByIdRetry(blockHeight, arClient, txId, peers)
 		if err != nil {
 			log.Error("get tx by id error", "txId", txId, "err", err)
 			// notice: must return fetch failed tx
@@ -225,7 +232,7 @@ func mustGetTxs(blockHeight int64, blockTxs []string, arClient *goar.Client, con
 	return
 }
 
-func mustGetBlocks(start, end int64, arClient *goar.Client, blockIdxs *BlockIdxs, conNum int) (blocks []*types.Block) {
+func mustGetBlocks(start, end int64, arClient *goar.Client, blockIdxs *BlockIdxs, conNum int, peers []string) (blocks []*types.Block) {
 	if start > end {
 		return
 	}
@@ -238,7 +245,7 @@ func mustGetBlocks(start, end int64, arClient *goar.Client, blockIdxs *BlockIdxs
 
 	p, _ := ants.NewPoolWithFunc(conNum, func(i interface{}) {
 		height := i.(int64)
-		b, err := getBlockByHeightRetry(arClient, height, blockIdxs)
+		b, err := getBlockByHeightRetry(arClient, height, blockIdxs, peers)
 		if err != nil {
 			log.Error("get block by height error", "height", height, "err", err)
 			panic(err)
@@ -264,16 +271,11 @@ func mustGetBlocks(start, end int64, arClient *goar.Client, blockIdxs *BlockIdxs
 	return
 }
 
-func getTxByIdRetry(blockHeight int64, arCli *goar.Client, txId string) (types.Transaction, error) {
+func getTxByIdRetry(blockHeight int64, arCli *goar.Client, txId string, peers []string) (types.Transaction, error) {
 	count := 0
 	for {
 		// get from trust node
 		tx, err := arCli.GetTransactionByID(txId)
-		if err != nil {
-			// get from non-trust nodes
-			tx, err = arCli.GetTxFromPeers(txId)
-		}
-
 		if err == nil {
 			// verify tx, ignore genesis block txs
 			if blockHeight != 0 {
@@ -281,11 +283,22 @@ func getTxByIdRetry(blockHeight int64, arCli *goar.Client, txId string) (types.T
 			}
 		}
 
+		if err != nil {
+			// get from non-trust nodes
+			tx, err = arCli.GetTxFromPeers(txId, peers...)
+			if err == nil {
+				// verify tx, ignore genesis block txs
+				if blockHeight != 0 {
+					err = utils.VerifyTransaction(*tx)
+				}
+			}
+		}
+
 		if err == nil {
 			return *tx, nil
 		}
 
-		if count == 2 {
+		if count == 5 {
 			return types.Transaction{}, err
 		}
 		count++
@@ -293,17 +306,21 @@ func getTxByIdRetry(blockHeight int64, arCli *goar.Client, txId string) (types.T
 	}
 }
 
-func getBlockByHeightRetry(arCli *goar.Client, height int64, blockIdxs *BlockIdxs) (*types.Block, error) {
+func getBlockByHeightRetry(arCli *goar.Client, height int64, blockIdxs *BlockIdxs, peers []string) (*types.Block, error) {
 	count := 0
 	for {
 		b, err := arCli.GetBlockByHeight(height)
-		if err != nil {
-			b, err = arCli.GetBlockFromPeers(height)
-		}
-
 		if err == nil {
 			// verify block
 			err = blockIdxs.VerifyBlock(*b)
+		}
+
+		if err != nil {
+			b, err = arCli.GetBlockFromPeers(height, peers...)
+			if err == nil {
+				// verify block
+				err = blockIdxs.VerifyBlock(*b)
+			}
 		}
 
 		if err == nil {

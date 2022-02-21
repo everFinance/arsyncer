@@ -8,7 +8,7 @@ import (
 // sync all arweave tx
 func main() {
 	nullFilterParams := arsyncer.FilterParams{} // non-file params
-	startHeight := int64(861460)                // from genesis block start
+	startHeight := int64(877360)                // from genesis block start
 	arNode := "https://arweave.net"
 	concurrencyNumber := 10 // runtime concurrency number, default 10
 	s := arsyncer.New(startHeight, nullFilterParams, arNode, concurrencyNumber, 15)
