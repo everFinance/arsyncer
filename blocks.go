@@ -48,6 +48,7 @@ func (l *BlockIdxs) existBlock(b types.Block) bool {
 
 func (l *BlockIdxs) VerifyBlock(b types.Block) error {
 	if !l.existBlock(b) {
+		log.Warn("block indepHash not exist blockIdxs", "blockHeight", b.Height, "blockIndepHash", b.IndepHash)
 		return errors.New("block indepHash not exist blockIdxs")
 	}
 	indepHash := utils.GenerateIndepHash(b)
