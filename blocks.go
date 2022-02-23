@@ -145,9 +145,8 @@ func strArrCheckSum(ss []string) string {
 }
 
 // TODO Lev suggest Temporary Solutions
-var gateway3Cli = gentleman.New().URL("http://gateway-3.arweave.net:1984")
-
 func getBlockHashListByHeightRange(startHeight, endHeight int64) ([]string, error) {
+	var gateway3Cli = gentleman.New().URL("http://gateway-3.arweave.net:1984")
 	gateway3Cli.AddPath(fmt.Sprintf("/hash_list/%d/%d", startHeight, endHeight))
 
 	req := gateway3Cli.Request()
