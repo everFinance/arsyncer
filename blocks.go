@@ -27,6 +27,7 @@ func GetBlockIdxs(startHeight int64, arCli *goar.Client) (*BlockIdxs, error) {
 	// get block hash_list from gateway3
 	spiltList, err := GetBlockHashListByGateway3(startHeight, endHeight)
 	if err != nil {
+		log.Error("GetBlockHashListByGateway3(startHeight, endHeight)", "err", err)
 		// get block hash_list from trust node
 		spiltList, err = GetBlockHashList(arCli, startHeight, endHeight)
 		if err != nil {
@@ -84,6 +85,7 @@ func GetBlockHashList(arCli *goar.Client, startHeight, endHeight int64) ([]strin
 	}
 	// todo bug fix
 	spiltList := list[curHeight-endHeight : curHeight-startHeight+1]
+	log.Debug("success get block hash_list from arweave gateway", "start", startHeight, "end", endHeight)
 	return spiltList, nil
 }
 
@@ -127,6 +129,7 @@ func GetBlockHashListFromPeers(c *goar.Client, startHeight, endHeight int64, che
 		}
 
 		if successCount >= checkNum {
+			log.Debug("success get block hash_list from peers", "start", startHeight, "end", endHeight)
 			return spiltList, nil
 		}
 		if failedCount >= checkNum/2 {
@@ -178,5 +181,6 @@ func GetBlockHashListByGateway3(startHeight, endHeight int64) ([]string, error) 
 	if len(list) != int(endHeight-startHeight+1) {
 		return nil, errors.New("get list incorrect")
 	}
+	log.Debug("success get block hash_list from gateway3.", "start", startHeight, "end", endHeight)
 	return list, nil
 }
