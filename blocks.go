@@ -7,6 +7,7 @@ import (
 	"github.com/everFinance/goar"
 	"github.com/everFinance/goar/types"
 	"github.com/everFinance/goar/utils"
+	"gopkg.in/h2non/gentleman.v2"
 	"strings"
 )
 
@@ -23,13 +24,16 @@ func GetBlockIdxs(startHeight int64, arCli *goar.Client) (*BlockIdxs, error) {
 		return nil, err
 	}
 	endHeight := info.Height
-
-	// get block hash_list from trust node
-	spiltList, err := GetBlockHashList(arCli, startHeight, endHeight)
+	// get block hash_list from gateway3
+	spiltList, err := GetBlockHashListByGateway3(startHeight, endHeight)
 	if err != nil {
-		log.Error("GetBlockHashList(arCli,startHeight,endHeight)", "err", err)
-		// get block hash_list from no-trust node
-		spiltList, err = GetBlockHashListFromPeers(arCli, startHeight, endHeight, 5)
+		// get block hash_list from trust node
+		spiltList, err = GetBlockHashList(arCli, startHeight, endHeight)
+		if err != nil {
+			log.Error("GetBlockHashList(arCli,startHeight,endHeight)", "err", err)
+			// get block hash_list from no-trust node
+			spiltList, err = GetBlockHashListFromPeers(arCli, startHeight, endHeight, 5)
+		}
 	}
 
 	if err != nil {
@@ -78,7 +82,8 @@ func GetBlockHashList(arCli *goar.Client, startHeight, endHeight int64) ([]strin
 	if curHeight < endHeight {
 		return nil, fmt.Errorf("curHeight must >= endHeight; curHeight:%d,endHeight:%d", curHeight, endHeight)
 	}
-	spiltList := list[curHeight-endHeight : endHeight-startHeight+1]
+	// todo bug fix
+	spiltList := list[curHeight-endHeight : curHeight-startHeight+1]
 	return spiltList, nil
 }
 
@@ -134,4 +139,44 @@ func GetBlockHashListFromPeers(c *goar.Client, startHeight, endHeight int64, che
 func strArrCheckSum(ss []string) string {
 	hash := sha256.Sum256([]byte(strings.Join(ss, "")))
 	return string(hash[:])
+}
+
+// TODO Lev suggest Temporary Solutions
+var gateway3Cli = gentleman.New().URL("http://gateway-3.arweave.net:1984")
+
+func getBlockHashListByHeightRange(startHeight, endHeight int64) ([]string, error) {
+	gateway3Cli.AddPath(fmt.Sprintf("/hash_list/%d/%d", startHeight, endHeight))
+
+	req := gateway3Cli.Request()
+	resp, err := req.Send()
+	if err != nil {
+		return nil, err
+	}
+
+	if !resp.Ok {
+		return nil, errors.New("resp is not ok")
+	}
+
+	defer resp.Close()
+	list := make([]string, 0, endHeight-startHeight+1)
+	if err = resp.JSON(&list); err != nil {
+		return nil, err
+	}
+
+	return list, nil
+}
+
+func GetBlockHashListByGateway3(startHeight, endHeight int64) ([]string, error) {
+	if startHeight > endHeight {
+		return nil, fmt.Errorf("startHeight:%d must <= endHeight:%d", startHeight, endHeight)
+	}
+	list, err := getBlockHashListByHeightRange(startHeight, endHeight)
+	if err != nil {
+		return nil, err
+	}
+	// verify
+	if len(list) != int(endHeight-startHeight+1) {
+		return nil, errors.New("get list incorrect")
+	}
+	return list, nil
 }
