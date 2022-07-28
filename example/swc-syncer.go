@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/everFinance/arsyncer"
 	"github.com/everFinance/goar/types"
 )
@@ -16,7 +17,7 @@ func main() {
 	startHeight := int64(472810)
 	arNode := "https://arweave.net"
 	concurrencyNumber := 50 // runtime concurrency number, default 10
-	s := arsyncer.New(startHeight, swcFilterParams, arNode, concurrencyNumber, 15)
+	s := arsyncer.New(startHeight, swcFilterParams, arNode, concurrencyNumber, 15, false)
 
 	// run
 	s.Run()

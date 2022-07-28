@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/everFinance/arsyncer"
 )
 
@@ -14,7 +15,7 @@ func main() {
 	startHeight := int64(811484)
 	arNode := "https://arweave.net"
 	concurrencyNumber := 100 // runtime concurrency number, default 10
-	s := arsyncer.New(startHeight, ownerFilterParams, arNode, concurrencyNumber, 15)
+	s := arsyncer.New(startHeight, ownerFilterParams, arNode, concurrencyNumber, 15, false)
 
 	// run
 	s.Run()

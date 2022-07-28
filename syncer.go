@@ -2,14 +2,15 @@ package arsyncer
 
 import (
 	"fmt"
+	"sync"
+	"sync/atomic"
+	"time"
+
 	"github.com/everFinance/goar"
 	"github.com/everFinance/goar/types"
 	"github.com/everFinance/goar/utils"
 	"github.com/go-co-op/gocron"
 	"github.com/panjf2000/ants/v2"
-	"sync"
-	"sync/atomic"
-	"time"
 )
 
 var log = NewLog("syncer")
@@ -27,9 +28,12 @@ type Syncer struct {
 	blockIdxs            *BlockIdxs
 	scheduler            *gocron.Scheduler
 	peers                []string
+
+	subscribeBlock     bool
+	SubscribeBlockChan chan *types.Block
 }
 
-func New(startHeight int64, filterParams FilterParams, arNode string, conNum int, stableDistance int64) *Syncer {
+func New(startHeight int64, filterParams FilterParams, arNode string, conNum int, stableDistance int64, subscribeBlock bool) *Syncer {
 	if conNum <= 0 {
 		conNum = 10 // default concurrency of number is 10
 	}
@@ -54,6 +58,7 @@ func New(startHeight int64, filterParams FilterParams, arNode string, conNum int
 		curHeight:            startHeight,
 		FilterParams:         filterParams,
 		blockChan:            make(chan *types.Block, 5*conNum),
+		SubscribeBlockChan:   make(chan *types.Block, 5*conNum),
 		blockTxsChan:         make(chan []SubscribeTx, conNum),
 		SubscribeChan:        make(chan []SubscribeTx, conNum),
 		arClient:             arCli,
@@ -63,6 +68,7 @@ func New(startHeight int64, filterParams FilterParams, arNode string, conNum int
 		blockIdxs:            idxs,
 		scheduler:            gocron.NewScheduler(time.UTC),
 		peers:                peers,
+		subscribeBlock:       subscribeBlock,
 	}
 }
 
@@ -82,6 +88,10 @@ func (s *Syncer) Close() (subscribeHeight int64) {
 
 func (s *Syncer) SubscribeTxCh() <-chan []SubscribeTx {
 	return s.SubscribeChan
+}
+
+func (s *Syncer) SubscribeBlockCh() <-chan *types.Block {
+	return s.SubscribeBlockChan
 }
 
 func (s *Syncer) GetSyncedHeight() int64 {
@@ -118,6 +128,9 @@ func (s *Syncer) pollingBlock() {
 			// add chan
 			for _, b := range blocks {
 				s.blockChan <- b
+				if s.subscribeBlock {
+					s.SubscribeBlockChan <- b
+				}
 			}
 		}
 	}
