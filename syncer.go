@@ -15,6 +15,12 @@ import (
 
 var log = NewLog("syncer")
 
+const (
+	SubscribeTypeTx         = "subscribe_tx"
+	SubscribeTypeBlock      = "subscribe_block"
+	SubscribeTypeBlockAndTx = "subscribe_block_and_tx"
+)
+
 type Syncer struct {
 	curHeight int64
 	FilterParams
@@ -29,11 +35,11 @@ type Syncer struct {
 	scheduler            *gocron.Scheduler
 	peers                []string
 
-	subscribeBlock     bool
+	subscribeType      string
 	SubscribeBlockChan chan *types.Block
 }
 
-func New(startHeight int64, filterParams FilterParams, arNode string, conNum int, stableDistance int64, subscribeBlock bool) *Syncer {
+func New(startHeight int64, filterParams FilterParams, arNode string, conNum int, stableDistance int64, subscribeType string) *Syncer {
 	if conNum <= 0 {
 		conNum = 10 // default concurrency of number is 10
 	}
@@ -68,7 +74,7 @@ func New(startHeight int64, filterParams FilterParams, arNode string, conNum int
 		blockIdxs:            idxs,
 		scheduler:            gocron.NewScheduler(time.UTC),
 		peers:                peers,
-		subscribeBlock:       subscribeBlock,
+		subscribeType:        subscribeType,
 	}
 }
 
@@ -83,6 +89,7 @@ func (s *Syncer) Close() (subscribeHeight int64) {
 	close(s.blockChan)
 	close(s.blockTxsChan)
 	close(s.SubscribeChan)
+	close(s.SubscribeBlockChan)
 	return s.nextSubscribeTxBlock - 1
 }
 
@@ -127,8 +134,10 @@ func (s *Syncer) pollingBlock() {
 			s.curHeight = end + 1
 			// add chan
 			for _, b := range blocks {
-				s.blockChan <- b
-				if s.subscribeBlock {
+				if s.subscribeType == SubscribeTypeTx || s.subscribeType == SubscribeTypeBlockAndTx {
+					s.blockChan <- b
+				}
+				if s.subscribeType == SubscribeTypeBlock || s.subscribeType == SubscribeTypeBlockAndTx {
 					s.SubscribeBlockChan <- b
 				}
 			}
