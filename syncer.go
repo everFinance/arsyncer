@@ -247,7 +247,7 @@ func mustGetBlocks(start, end int64, arClient *goar.Client, blockIdxs *BlockIdxs
 		height := i.(int64)
 		b, err := getBlockByHeightRetry(arClient, height, blockIdxs, peers)
 		if err != nil {
-			log.Error("get block by height error", "height", height, "err", err)
+			log.Error("getBlockByHeightRetry get block by height error", "height", height, "err", err)
 			panic(err)
 		}
 
