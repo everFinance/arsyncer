@@ -154,7 +154,7 @@ func (s *Syncer) pollingTx() {
 				if bHeight-atomic.LoadInt64(&s.nextSubscribeTxBlock) < s.conNum {
 					break
 				}
-				log.Debug("wait for pollingTxs", "wait block height", b.Height, "nextSubscribeTxBlock Height", s.nextSubscribeTxBlock)
+				// log.Debug("wait for pollingTxs", "wait block height", b.Height, "nextSubscribeTxBlock Height", s.nextSubscribeTxBlock)
 				time.Sleep(5 * time.Second)
 			}
 
