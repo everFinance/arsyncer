@@ -56,6 +56,16 @@ func (l *BlockIdxs) existBlock(b types.Block) bool {
 }
 
 func (l *BlockIdxs) VerifyBlock(b types.Block) error {
+	/*
+		 2.6 is out - https://github.com/ArweaveTeam/arweave/releases/tag/N.2.6.0.
+		The fork activates at height 1132210, approximately 2023-03-06 14:00 UTC.
+		You will need to make sure you have upgraded your miner before this time to connect to the network.
+		You can find more information in the release notes and the updated mining guide.
+	*/
+	if b.Height >= 1132210 { // not verify 2.6 block
+		return nil
+	}
+
 	if !l.existBlock(b) {
 		log.Warn("block indepHash not exist blockIdxs", "blockHeight", b.Height, "blockIndepHash", b.IndepHash)
 		return errors.New("block indepHash not exist blockIdxs")
