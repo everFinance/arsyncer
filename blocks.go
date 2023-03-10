@@ -10,6 +10,8 @@ import (
 	"strings"
 )
 
+const BlockMaxCount = 10000
+
 type BlockIdxs struct {
 	StartHeight  int64
 	EndHeight    int64
@@ -23,6 +25,9 @@ func GetBlockIdxs(startHeight int64, arCli *goar.Client) (*BlockIdxs, error) {
 		return nil, err
 	}
 	endHeight := info.Height
+	if endHeight-startHeight >= BlockMaxCount {
+		endHeight = startHeight + BlockMaxCount - 1
+	}
 	// get block hash_list from trust node
 	spiltList, err := arCli.GetBlockHashList(int(startHeight), int(endHeight))
 	if err != nil {
