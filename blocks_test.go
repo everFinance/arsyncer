@@ -7,7 +7,7 @@ import (
 )
 
 func TestGetBlockHashListByHeightRange(t *testing.T) {
-	start := int64(1095756)
+	start := int64(1000)
 
 	arCli := goar.NewClient("https://arweave.net")
 	// info, err := arCli.GetInfo()
@@ -21,5 +21,6 @@ func TestGetBlockHashListByHeightRange(t *testing.T) {
 
 	idx, err := GetBlockIdxs(start, arCli)
 	assert.NoError(t, err)
-	t.Log(idx)
+	t.Log(idx.StartHeight)
+	t.Log(idx.EndHeight)
 }
